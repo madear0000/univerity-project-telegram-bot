@@ -37,10 +37,10 @@ def log_completed_task(task_name, difficulty, time):
 def isUserDoHisTask(message, bot, index, types):
     if message.text == "✅ Да":
         bot.send_message(message.chat.id, f"Отлично, задача {index} завершена!")
-        startNextTask(message, bot, index, types) 
+        startNextTask(message, bot, index, types)  # Переход к следующей задаче
     else:
         bot.send_message(message.chat.id, "Не расстраивайся, попробуй еще раз.")
-        startDoTask(message, bot, types) 
+        startDoTask(message, bot, types)  # Перезапуск задачи
 
 def startNextTask(message, bot, current_index, types):
     user_id = message.chat.id
@@ -63,8 +63,8 @@ def startNextTask(message, bot, current_index, types):
         bot.send_message(message.chat.id, f"Время для выполнения задачи истекло. Вы закончили?", reply_markup=markup)
         bot.register_next_step_handler(message, isUserDoHisTask, bot, index, types)  # Передаем types
     else:
-        from logic import startWork
-        markup = startWork(types)
+        from logic import addStartButton
+        markup = addStartButton(types)
         bot.send_message(message.chat.id, "Вы завершили все задачи! Молодец!", reply_markup=markup)
 
 def startDoTask(message, bot, types):
