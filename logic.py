@@ -1,5 +1,6 @@
 from startNow import howManyTaskShouldAddNow
 from saveData import get_statistics 
+from doLater import startLater
 
 def addStartButton(types):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -13,7 +14,13 @@ def checkTimeToTask(message, bot, types):
         bot.send_message(message.chat.id, "Хорошо, сколько задач вы хотите задать?", reply_markup=types.ReplyKeyboardRemove())
         bot.register_next_step_handler(message, howManyTaskShouldAddNow, bot, types)
     elif message.text == "🕒 Задать график задач потом":
-        bot.send_message(message.chat.id, "Вы выбрали задать задачу позже.", reply_markup=types.ReplyKeyboardRemove())
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        new_list = types.KeyboardButton("📝 Задать новый график")
+        change_list = types.KeyboardButton("📈 Изменить уже готовый")
+        markup.add(new_list)
+        markup.add(change_list)
+        bot.send_message(message.chat.id, "Что вы хотите сделать", reply_markup=markup)
+        bot.register_next_step_handler(message, startLater, bot, types)
     elif message.text == "❌ Отменить действие":
         markup = addStartButton(types)
         bot.send_message(message.chat.id, "Хорошо, задача отменена", reply_markup=markup)

@@ -10,7 +10,7 @@ def isUserDoHisTask(message, bot, index, types):
 
     if message.text == "✅ Да":
         task, details = tasks[index - 1]
-        bot.send_message(message.chat.id, f"Отлично, задача {index} завершена!")
+        bot.send_message(message.chat.id, f"Отлично, задача завершена!")
         
         add_completed_task(user_id, task, details["time"], details["difficulty"])
         
@@ -25,12 +25,12 @@ def startNextTask(message, bot, current_index, types):
     user_id = message.chat.id
     tasks = user_tasks[user_id]
 
-    if current_index <= len(tasks):  # Проверка корректного индекса
+    if current_index <= len(tasks): 
         task, details = list(tasks.items())[current_index - 1]
         difficulty = details["difficulty"]
         time_to_complete = details["time"]
 
-        bot.send_message(message.chat.id, f"Начинаем задачу {current_index}: {task}. Удачи вам в усердной работе!", reply_markup=types.ReplyKeyboardRemove())
+        bot.send_message(message.chat.id, f"Начинаем задачу : {task}. Удачи вам в усердной работе!", reply_markup=types.ReplyKeyboardRemove())
         bot.send_message(message.chat.id, f"Время выполнения задачи: {time_to_complete} минут.")
         time.sleep(time_to_complete * 60)
 
@@ -60,12 +60,11 @@ def startDoTask(message, bot, types):
 
     bot.send_message(
         message.chat.id, 
-        f"Начинаем задачу {index + 1}: {task}. Удачи вам в усердной работе!",
+        f"Начинаем задачу: {task}. Удачи вам в усердной работе!",
         reply_markup=types.ReplyKeyboardRemove()
     )
     bot.send_message(message.chat.id, f"Время выполнения задачи: {time_to_complete} минут.")
 
-    # Устанавливаем таймер для выполнения следующей части кода
     timer = threading.Timer(time_to_complete * 60, notifyTaskCompletion, args=(message, bot, index, types))
     timer.start() 
 
