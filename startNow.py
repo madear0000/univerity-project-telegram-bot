@@ -1,32 +1,36 @@
 import time
 from saveData import add_completed_task
+import threading
 
 user_tasks = {}
 
 def isUserDoHisTask(message, bot, index, types):
     user_id = message.chat.id
-    task, details = list(user_tasks[user_id].items())[index - 1] 
+    tasks = list(user_tasks[user_id].items())
 
     if message.text == "✅ Да":
+        task, details = tasks[index - 1]
         bot.send_message(message.chat.id, f"Отлично, задача {index} завершена!")
         
         add_completed_task(user_id, task, details["time"], details["difficulty"])
         
-        startNextTask(message, bot, index, types)  
+        del user_tasks[user_id][task]
+        
+        startNextTask(message, bot, index, types)
     else:
         bot.send_message(message.chat.id, "Не расстраивайся, попробуй еще раз.")
-        startDoTask(message, bot, types)  
+        startDoTask(message, bot, types)
 
 def startNextTask(message, bot, current_index, types):
     user_id = message.chat.id
     tasks = user_tasks[user_id]
-    if current_index < len(tasks): 
-        index = current_index + 1
-        task, details = list(tasks.items())[current_index]  
+
+    if current_index <= len(tasks):  # Проверка корректного индекса
+        task, details = list(tasks.items())[current_index - 1]
         difficulty = details["difficulty"]
         time_to_complete = details["time"]
 
-        bot.send_message(message.chat.id, f"Начинаем задачу {index}: {task}. Удачи вам в усердной работе!", reply_markup=types.ReplyKeyboardRemove())
+        bot.send_message(message.chat.id, f"Начинаем задачу {current_index}: {task}. Удачи вам в усердной работе!", reply_markup=types.ReplyKeyboardRemove())
         bot.send_message(message.chat.id, f"Время выполнения задачи: {time_to_complete} минут.")
         time.sleep(time_to_complete * 60)
 
@@ -36,7 +40,7 @@ def startNextTask(message, bot, current_index, types):
         markup.add(yes_button, no_button)
 
         bot.send_message(message.chat.id, f"Время для выполнения задачи истекло. Вы закончили?", reply_markup=markup)
-        bot.register_next_step_handler(message, isUserDoHisTask, bot, index, types) 
+        bot.register_next_step_handler(message, isUserDoHisTask, bot, current_index, types)  # Передаем корректный индекс
     else:
         from logic import addStartButton
         markup = addStartButton(types)
@@ -54,17 +58,29 @@ def startDoTask(message, bot, types):
     difficulty = details["difficulty"]
     time_to_complete = details["time"]
 
-    bot.send_message(message.chat.id, f"Начинаем задачу {index + 1}: {task}. Удачи вам в усердной работе!", reply_markup=types.ReplyKeyboardRemove())
+    bot.send_message(
+        message.chat.id, 
+        f"Начинаем задачу {index + 1}: {task}. Удачи вам в усердной работе!",
+        reply_markup=types.ReplyKeyboardRemove()
+    )
     bot.send_message(message.chat.id, f"Время выполнения задачи: {time_to_complete} минут.")
-    time.sleep(time_to_complete * 60)
 
+    # Устанавливаем таймер для выполнения следующей части кода
+    timer = threading.Timer(time_to_complete * 60, notifyTaskCompletion, args=(message, bot, index, types))
+    timer.start() 
+
+def notifyTaskCompletion(message, bot, index, types):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     no_button = types.KeyboardButton("❌ Нет")
     yes_button = types.KeyboardButton("✅ Да")
     markup.add(yes_button, no_button)
 
-    bot.send_message(message.chat.id, f"Время для выполнения задачи истекло. Вы закончили?", reply_markup=markup)
-    bot.register_next_step_handler(message, isUserDoHisTask, bot, index + 1, types)  
+    bot.send_message(
+        message.chat.id, 
+        f"Время для выполнения задачи истекло. Вы закончили?", 
+        reply_markup=markup
+    )
+    bot.register_next_step_handler(message, isUserDoHisTask, bot, index + 1, types)
 
 def addTaskNow(message, bot, task_count, types, current_task_number=1):
     user_id = message.chat.id
@@ -118,16 +134,15 @@ def setTaskTime(message, bot, task, task_count, types, current_task_number):
     try:
         time = int(message.text)
         if time >= 0:
-            user_tasks[user_id][task]["time"] = time
-            
+            user_tasks[user_id][task]["time"] = time 
             current_task_number += 1
             addTaskNow(message, bot, task_count, types, current_task_number) 
         else:
             bot.send_message(message.chat.id, "Ошибка: время должно быть неотрицательным.")
-            setTaskTime(message, bot, task, task_count, types, current_task_number)
+            bot.register_next_step_handler(message, setTaskTime, bot, task, task_count, types, current_task_number)
     except ValueError:
         bot.send_message(message.chat.id, "Ошибка: введите корректное число.")
-        setTaskTime(message, bot, task, task_count, types, current_task_number)
+        bot.register_next_step_handler(message, setTaskTime, bot, task, task_count, types, current_task_number)
 
 def displayTasks(message, bot, types):
     user_id = message.chat.id
@@ -201,7 +216,9 @@ def confirmEdit(message, bot, task, types):
         button1 = types.KeyboardButton("1👼")  
         button2 = types.KeyboardButton("2🙂")    
         button3 = types.KeyboardButton("3😢")    
-        markup.add(button1, button2, button3)
+        markup.add(button1)
+        markup.add(button2)
+        markup.add(button3)
         bot.send_message(message.chat.id, "Оцените новую сложность задачи:", reply_markup=markup)
         bot.register_next_step_handler(message, lambda msg: updateTaskDifficulty(msg, bot, task, types))
     else:
