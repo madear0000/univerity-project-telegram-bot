@@ -1,46 +1,21 @@
 import time
-import sqlite3
-from datetime import datetime
+from saveData import add_completed_task
 
 user_tasks = {}
 
-def create_db():
-    conn = sqlite3.connect('tasks.db') 
-    cursor = conn.cursor()
-
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS completed_tasks (
-        task_name TEXT,
-        difficulty INTEGER,
-        time INTEGER,
-        completion_time TEXT
-    )
-    ''')
-
-    conn.commit() 
-    conn.close()  
-    
-def log_completed_task(task_name, difficulty, time):
-    conn = sqlite3.connect('tasks.db')
-    cursor = conn.cursor()
-
-    completion_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-    cursor.execute('''
-    INSERT INTO completed_tasks (task_name, difficulty, time, completion_time)
-    VALUES (?, ?, ?, ?)
-    ''', (task_name, difficulty, time, completion_time))
-
-    conn.commit() 
-    conn.close()  
-
 def isUserDoHisTask(message, bot, index, types):
+    user_id = message.chat.id
+    task, details = list(user_tasks[user_id].items())[index - 1] 
+
     if message.text == "✅ Да":
         bot.send_message(message.chat.id, f"Отлично, задача {index} завершена!")
-        startNextTask(message, bot, index, types)  # Переход к следующей задаче
+        
+        add_completed_task(user_id, task, details["time"], details["difficulty"])
+        
+        startNextTask(message, bot, index, types)  
     else:
         bot.send_message(message.chat.id, "Не расстраивайся, попробуй еще раз.")
-        startDoTask(message, bot, types)  # Перезапуск задачи
+        startDoTask(message, bot, types)  
 
 def startNextTask(message, bot, current_index, types):
     user_id = message.chat.id
@@ -61,7 +36,7 @@ def startNextTask(message, bot, current_index, types):
         markup.add(yes_button, no_button)
 
         bot.send_message(message.chat.id, f"Время для выполнения задачи истекло. Вы закончили?", reply_markup=markup)
-        bot.register_next_step_handler(message, isUserDoHisTask, bot, index, types)  # Передаем types
+        bot.register_next_step_handler(message, isUserDoHisTask, bot, index, types) 
     else:
         from logic import addStartButton
         markup = addStartButton(types)

@@ -3,6 +3,8 @@ from telebot import types;
 from logic import startWork
 from logic import checkTimeToTask
 from logic import addStartButton
+from saveData import init_db
+from logic import showStatistics
 
 bot = telebot.TeleBot('7981308623:AAFQFaX8c-yOJZX-hYtG6LPlifqZQfXcTW0')
 
@@ -17,8 +19,11 @@ def startChat(message):
 def chatWithUser(message):
     if (message.text == "📝 Задать задачу"):
          startWork(message, bot, types)
+    elif message.text == "👁 Посмотреть статистику":
+        showStatistics(message, bot)
     elif message.text in ["🚀 Начать активность сейчас", "🕒 Задать график задач потом", "❌ Отменить действие"]:
         checkTimeToTask(message, bot, types)
         
     
 bot.polling(none_stop=True)
+init_db()
