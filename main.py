@@ -1,10 +1,11 @@
 import telebot
-from telebot import types;
-from logic import startWork
-from logic import checkTimeToTask
-from logic import addStartButton
+from telebot import types
+from logic import startWork, checkTimeToTask, addStartButton, showStatistics
 from saveData import init_db
-from logic import showStatistics
+from doLater import getScheduledTasks
+from datetime import datetime
+import threading
+import time
 
 bot = telebot.TeleBot('7981308623:AAFQFaX8c-yOJZX-hYtG6LPlifqZQfXcTW0')
 
@@ -23,6 +24,21 @@ def chatWithUser(message):
         showStatistics(message, bot)
     elif message.text in ["🚀 Начать активность сейчас", "🕒 Задать график задач потом", "❌ Отменить действие"]:
         checkTimeToTask(message, bot, types)
+        
+def checkTaskSchedule():
+    while True:
+        now = datetime.now().strftime("%Y-%m-%d %H:%M")
+        tasks = getScheduledTasks(now)
+        
+        for task in tasks:
+            bot.send_message(
+                task[0],  
+                f"Напоминание: у вас запланирована задача '{task[1]}' на {task[2]}"
+            )
+        
+        time.sleep(60)  
+
+threading.Thread(target=checkTaskSchedule, daemon=True).start()
         
     
 bot.polling(none_stop=True)
